@@ -1,0 +1,73 @@
+---
+layout: post
+title: Bit Field in PHP
+date: '2011-11-08T08:13:00.000-08:00'
+author: Morgan Freshour
+tags: 
+modified_time: '2011-11-08T08:13:36.512-08:00'
+blogger_id: tag:blogger.com,1999:blog-3127719415764963943.post-2247495884822944242
+blogger_orig_url: http://hillbilly-nerd.blogspot.com/2011/11/bit-field-in-php.html
+---
+
+So, a coworker ran across a piece of legacy code and wasn't sure what it was doing.<br />
+<br />
+<script type="syntaxhighlighter" class="brush:php"><![CDATA[
+foreach($external_reports as $report){
+  if ($show_reports & parseInt($report['type'])){
+ display_report($report);
+  }
+}
+]]></script><br />
+<br />
+His first guess was a typo in a logical AND (&&). I completely understand his confusion, binary operators are not commonly used in PHP programs. Being an old C programmer, when I saw this I knew immediately it was a bit field. Checking the database table that <i>$external_reports</i> was pull from confirmed this :<br />
+<pre>+----------+------+
+| Name     | Type |
++----------+------+
+| Report A |    1 |  
+| Report B |    2 |
+        ...
+| Repord H |  256 |
+| Report I |  512 |
++----------+------+
+</pre><br />
+So, what is a bit field? Wikipedia says <a href="http://en.wikipedia.org/wiki/Bit_field">Bit Field</a> is a "common idiom used in computer programming to compactly store multiple logical values as a short series of bits where each of the single bits can be addressed separately." These are extremely important when the memory usage is vital (and probably other scenarios that I can't think of while I write this).  Infact, C/C++ has the idea of bit fields built into the <a href="http://publications.gbdirect.co.uk/c_book/chapter6/bitfields.html">struct type</a>.<br />
+<br />
+Okay, so the important part, how they work.  First let's look at that table again with an extra piece of information, the binary representation of the numbers :<br />
+<pre>+----------+------+
+| Name     | Type |
++----------+------+------------+
+| Report A |    1 | 0000000001 |
+| Report B |    2 | 0000000010 |
+        ...
+| Repord H |  256 | 0100000000 |
+| Report I |  512 | 1000000000 |
++----------+------+------------+
+</pre><br />
+So, if <i>$show_reports</i> = 512 (binary of 1000000011).  So the code loops through each of the report types AND'ing it to the value.  So the results are :<br />
+<pre>Report A                     Report B
+  0000000001                   0000000010
+& 1000000011                 & 1000000011
+============                 ============
+  0000000001 (TRUE)            0000000010 (TRUE)
+
+
+
+Repord H                     Report I
+  0100000000                   1000000000
+& 1000000011                 & 1000000011
+============                 ============
+  0000000000 (FALSE)           1000000000 (TRUE)
+</pre>  <br />
+So, <i>display_report()</i> will be displayed for A,B, & I.<br />
+<br />
+So, how does the value change?  Well to add a new report one just OR's it:<br />
+<script type="syntaxhighlighter" class="brush:php"><![CDATA[
+$value = $value | $new_type;
+]]></script><br />
+<br />
+To remove a value, it's AND'ed on the <a href="http://en.wikipedia.org/wiki/One's_complement">ones' complement</a> of the value:<br />
+<script type="syntaxhighlighter" class="brush:php"><![CDATA[
+$value = $value & ~$new_value;
+]]></script><br />
+<br />
+Okay, so reading back over this, it doesn't seem a good blog post.  Oh well :P
