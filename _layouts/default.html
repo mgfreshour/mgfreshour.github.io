@@ -1,14 +1,11 @@
----
-layout: compress
----
 <!DOCTYPE html>
-<html>
+<html class="t-{{ site.theme }}">
   {% include head.html %}
   <body>
-    <main class="wrapper">
-      {% include header.html %}
-      {{ content }}
-      {% include footer.html %}
-    </main>
+    {% include navigation.html %}
+
+    {{ content }}
+
+    {% include footer.html %}
   </body>
 </html>
